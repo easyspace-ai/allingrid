@@ -1,0 +1,129 @@
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE 和编辑器
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# 依赖和包管理
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+vendor/
+go.sum.backup
+
+# 构建输出
+dist/
+build/
+dist-ssr/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+*.tsbuildinfo
+*.local
+
+# 环境变量和配置
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+config.local.yaml
+*.local
+
+# 日志文件
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+build-errors.log
+
+# 测试和覆盖率
+coverage/
+.nyc_output/
+coverage.out
+coverage.html
+*.cover
+test-results/
+*.test
+*.spec.js.snap
+
+# 临时文件和缓存
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.turbo/
+*.bak
+*.backup
+*_old.*
+*_backup.*
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+data.db
+
+# 上传文件
+uploads/
+*.upload
+
+# Go 特定
+go.work
+go.work.sum
+/bin/
+server
+server_test
+teable-backend*
+
+# Docker
+.dockerignore
+
+# Swagger 生成文件
+/api/swagger/docs.go
+/api/swagger/swagger.json
+/api/swagger/swagger.yaml
+
+# 前端静态文件（由构建脚本复制）
+/internal/interfaces/http/web/
+/pkg/static/
+
+# 文档归档
+docs/archive/
+cmd/sharedb-test/archive/
+
