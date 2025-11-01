@@ -1,0 +1,3 @@
+-- 删除base表
+DROP TABLE IF EXISTS base CASCADE;
+

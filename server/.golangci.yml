@@ -1,0 +1,214 @@
+# golangci-lint 配置文件
+
+run:
+  # 超时时间
+  timeout: 5m
+  
+  # 要检查的Go版本
+  go: "1.21"
+  
+  # 跳过的目录
+  skip-dirs:
+    - vendor
+    - bin
+    - docs
+    - deployments
+    - scripts
+  
+  # 跳过的文件
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*_gen\\.go$"
+
+# 输出配置
+output:
+  # 输出格式: colored-line-number|line-number|json|tab|checkstyle|code-climate
+  format: colored-line-number
+  
+  # 打印检查器名称
+  print-issued-lines: true
+  print-linter-name: true
+
+# 启用的检查器
+linters:
+  enable:
+    # 默认启用的检查器
+    - errcheck      # 检查未处理的错误
+    - gosimple      # 简化代码建议
+    - govet         # go vet检查
+    - ineffassign   # 检查无效赋值
+    - staticcheck   # 静态分析检查
+    - typecheck     # 类型检查
+    - unused        # 检查未使用的代码
+    
+    # 额外启用的检查器
+    - gofmt         # 检查代码格式
+    - goimports     # 检查import格式
+    - golint        # Go代码风格检查
+    - gosec         # 安全检查
+    - misspell      # 拼写检查
+    - unconvert     # 检查不必要的类型转换
+    - unparam       # 检查未使用的参数
+    - gocyclo       # 循环复杂度检查
+    - dupl          # 重复代码检查
+    - goconst       # 检查可以定义为常量的字符串
+    - gocognit      # 认知复杂度检查
+    - bodyclose     # 检查HTTP响应体是否关闭
+    - noctx         # 检查HTTP请求是否传递context
+    - rowserrcheck  # 检查sql.Rows.Err是否被检查
+    - sqlclosecheck # 检查sql.DB是否被关闭
+    - lll           # 行长度检查
+    - whitespace    # 空白字符检查
+    - wsl           # 空行检查
+    
+  disable:
+    - deadcode      # 已废弃，使用unused替代
+    - varcheck      # 已废弃，使用unused替代
+    - structcheck   # 已废弃，使用unused替代
+    - maligned      # 已废弃
+    - interfacer    # 已废弃
+    - scopelint     # 已废弃
+
+# 检查器配置
+linters-settings:
+  # errcheck配置
+  errcheck:
+    # 检查类型断言
+    check-type-assertions: true
+    # 检查空白标识符
+    check-blank: true
+    # 忽略的函数
+    ignore: fmt:.*,io/ioutil:^Read.*
+    
+  # gofmt配置
+  gofmt:
+    # 简化代码
+    simplify: true
+    
+  # goimports配置
+  goimports:
+    # 本地包前缀
+    local-prefixes: teable-go-backend
+    
+  # golint配置
+  golint:
+    # 最小置信度
+    min-confidence: 0.8
+    
+  # gosec配置
+  gosec:
+    # 排除的规则
+    excludes:
+      - G204  # 子进程启动审计
+      - G304  # 文件路径提供审计
+    
+  # gocyclo配置
+  gocyclo:
+    # 最大循环复杂度
+    min-complexity: 15
+    
+  # gocognit配置
+  gocognit:
+    # 最大认知复杂度
+    min-complexity: 20
+    
+  # dupl配置
+  dupl:
+    # 重复代码阈值
+    threshold: 100
+    
+  # goconst配置
+  goconst:
+    # 最小字符串长度
+    min-len: 3
+    # 最小出现次数
+    min-occurrences: 3
+    # 忽略测试文件
+    ignore-tests: true
+    
+  # lll配置
+  lll:
+    # 最大行长度
+    line-length: 120
+    
+  # misspell配置
+  misspell:
+    # 语言
+    locale: US
+    
+  # unparam配置
+  unparam:
+    # 检查导出函数
+    check-exported: false
+    
+  # unused配置
+  unused:
+    # 检查导出函数
+    check-exported: false
+    
+  # whitespace配置
+  whitespace:
+    multi-if: false
+    multi-func: false
+
+# 问题配置
+issues:
+  # 排除默认的排除规则
+  exclude-use-default: false
+  
+  # 最大问题数量，0表示无限制
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  
+  # 排除的问题
+  exclude:
+    # 排除一些常见的误报
+    - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
+    - "exported (type|method|function) .* should have comment or be unexported"
+    - "ST1000: at least one file in a package should have a package comment"
+    
+  # 排除规则
+  exclude-rules:
+    # 排除测试文件的某些检查
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - lll
+        
+    # 排除main.go的某些检查
+    - path: cmd/server/main\.go
+      linters:
+        - gocyclo
+        - lll
+        
+    # 排除生成的代码
+    - path: ".*\\.pb\\.go"
+      linters:
+        - lll
+        - errcheck
+        
+    # 排除特定的错误消息
+    - text: "weak cryptographic primitive"
+      linters:
+        - gosec
+        
+    - text: "Use of builtin 'len' function in Sprintf"
+      linters:
+        - gosimple
+
+# 严重程度配置
+severity:
+  # 默认严重程度
+  default-severity: error
+  
+  # 规则严重程度
+  rules:
+    - linters:
+        - dupl
+      severity: info
+    - linters:
+        - goconst
+      severity: info

@@ -1,0 +1,101 @@
+# LuckDB 服务器配置示例
+# 复制此文件为 config.yaml 并修改为你的配置
+
+server:
+  port: 8888
+  mode: development  # development, production
+  name: LuckDB
+  version: 0.1.0
+
+database:
+  host: localhost
+  port: 5432
+  name: luckdb_dev
+  user: luckdb
+  password: luckdb
+  sslmode: disable
+  maxIdleConns: 10
+  maxOpenConns: 100
+  connMaxLifetime: 1h
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  poolSize: 10
+
+jwt:
+  secret: "your-secret-key-change-in-production-use-at-least-32-chars"
+  expires: 168h  # 7 days
+  refreshExpires: 720h  # 30 days
+
+storage:
+  provider: local  # local, s3, oss
+  local:
+    path: ./uploads
+  # s3:
+  #   endpoint: s3.amazonaws.com
+  #   bucket: luckdb-uploads
+  #   accessKey: your-access-key
+  #   secretKey: your-secret-key
+  #   region: us-east-1
+
+log:
+  level: debug  # debug, info, warn, error
+  output: stdout  # stdout, file, both
+  file: logs/app.log
+  maxSize: 100  # MB
+  maxBackups: 3
+  maxAge: 28  # days
+  compress: true
+
+cors:
+  allowOrigins:
+    - http://localhost:3000
+    - http://localhost:3001
+  allowMethods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - OPTIONS
+  allowHeaders:
+    - Origin
+    - Content-Type
+    - Authorization
+  exposeHeaders:
+    - Content-Length
+  allowCredentials: true
+  maxAge: 12h
+
+rateLimit:
+  enabled: true
+  requests: 100  # 每分钟请求数
+  burst: 10
+
+# WebSocket 配置已移除，现在使用 SSE 和 YJS 进行实时通信
+
+# AI 配置（可选）
+ai:
+  enabled: false
+  provider: ollama  # ollama, openai
+  ollama:
+    baseURL: http://localhost:11434
+    model: llama2
+  # openai:
+  #   apiKey: your-openai-api-key
+  #   model: gpt-3.5-turbo
+
+
+# 监控配置
+monitoring:
+  enabled: false
+  # prometheus:
+  #   enabled: true
+  #   port: 9090
+  # sentry:
+  #   dsn: your-sentry-dsn
+  #   environment: development
+

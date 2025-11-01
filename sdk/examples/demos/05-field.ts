@@ -1,0 +1,180 @@
+import LuckDBClient from '../../src/index'
+import { config } from '../config'
+import { Logger } from '../utils/logger'
+import { sleep, safeExecute } from '../utils/helpers'
+import type { DemoContext } from '../utils/types'
+
+const logger = new Logger('Field Demo')
+
+export async function runFieldDemo(context: DemoContext): Promise<boolean> {
+  logger.section('Field API 演示')
+
+  const { client } = context
+
+  if (!context.tableId) {
+    logger.error('需要先创建 Table')
+    return false
+  }
+
+  try {
+    // 1. 创建各种类型的字段
+    logger.step(1, 6, '创建各种类型的字段...')
+    
+    const fieldTypes = [
+      { name: 'Name', type: 'singleLineText', required: true },
+      { name: 'Description', type: 'longText' },
+      { name: 'Age', type: 'number', options: { precision: 0, min: 0, max: 150 } },
+      { name: 'Birthday', type: 'date' },
+      { name: 'Created At', type: 'datetime' },
+      { name: 'Is Active', type: 'boolean' },
+      { 
+        name: 'Status', 
+        type: 'singleSelect',
+        options: {
+          choices: [
+            { id: 'active', name: '活跃', color: '#00ff00' },
+            { id: 'inactive', name: '非活跃', color: '#ff0000' }
+          ]
+        }
+      },
+      {
+        name: 'Tags',
+        type: 'multipleSelect',
+        options: {
+          choices: [
+            { id: 'tag1', name: '标签1', color: '#0000ff' },
+            { id: 'tag2', name: '标签2', color: '#ffff00' }
+          ]
+        }
+      }
+    ]
+
+    for (const fieldConfig of fieldTypes) {
+      const field = await safeExecute(async () => {
+        return await client.fields.create(context.tableId!, fieldConfig)
+      }, `创建字段 ${fieldConfig.name} 失败`)
+
+      if (field) {
+        context.fieldIds[fieldConfig.name] = field.id
+        logger.success(`字段创建成功: ${field.name} (${field.type})`)
+      }
+    }
+
+    logger.success(`成功创建 ${Object.keys(context.fieldIds).length} 个字段`)
+
+    // 2. 获取字段列表
+    logger.step(2, 6, '获取字段列表...')
+    const fieldList = await client.fields.getList(context.tableId!, 1, 100)
+    logger.success(`获取到 ${fieldList.items.length} 个字段`)
+    logger.info(`分页信息: 总数=${fieldList.pagination.total}`)
+
+    // 3. 获取所有字段
+    logger.step(3, 6, '获取所有字段...')
+    const allFields = await client.fields.getFullList(context.tableId!)
+    logger.success(`获取到 ${allFields.length} 个字段（完整列表）`)
+
+    // 4. 获取单个字段
+    logger.step(4, 6, '获取单个字段...')
+    if (Object.keys(context.fieldIds).length > 0) {
+      const firstFieldId = Object.values(context.fieldIds)[0]
+      const field = await safeExecute(async () => {
+        return await client.fields.getOne(firstFieldId!)
+      }, '获取单个字段失败')
+      
+      if (field) {
+        logger.success(`获取成功: ${field.name} (${field.type})`)
+        logger.info(`字段详情: ${JSON.stringify(field, null, 2)}`)
+      }
+    }
+
+    // 5. 更新字段
+    logger.step(5, 6, '更新字段...')
+    if (context.fieldIds['Name']) {
+      const updatedField = await safeExecute(async () => {
+        return await client.fields.update(context.fieldIds['Name'], {
+          name: 'Full Name',
+          description: '完整姓名'
+        })
+      }, '更新字段失败')
+      
+      if (updatedField) {
+        logger.success(`更新成功: ${updatedField.name}`)
+      } else {
+        logger.warning('字段更新失败（可能字段不存在或已删除）')
+      }
+    }
+
+    // 6. 删除字段（可选，用于清理）
+    logger.step(6, 6, '清理: 删除测试字段...')
+    const shouldCleanup = process.env.CLEANUP !== 'false'
+    if (shouldCleanup) {
+      // 只删除一个测试字段
+      const testFieldId = context.fieldIds['Is Active']
+      if (testFieldId) {
+        await safeExecute(async () => {
+          await client.fields.delete(testFieldId)
+          logger.success('测试字段已删除')
+        }, '删除字段失败')
+      }
+    } else {
+      logger.info('跳过清理（设置 CLEANUP=false 可保留资源）')
+    }
+
+    logger.success('\n✅ Field API 演示完成')
+    return true
+
+  } catch (error: any) {
+    logger.error(`\n❌ Field API 演示失败: ${error.message}`)
+    if (config.debug) {
+      console.error(error)
+    }
+    return false
+  }
+}
+
+// 如果直接运行此文件
+if (require.main === module) {
+  import('../config').then(({ config }) => {
+    const client = new LuckDBClient(config.serverURL)
+    
+    // 先登录并创建 Space、Base 和 Table
+    client.auth.login(config.testEmail, config.testPassword)
+      .then(() => {
+        return client.spaces.create({
+          name: `Demo Space ${Date.now()}`,
+          description: 'Field Demo Space'
+        })
+      })
+      .then(space => {
+        return client.bases.create(space.id, {
+          name: `Demo Base ${Date.now()}`,
+          icon: '📊'
+        }).then(base => ({ space, base }))
+      })
+      .then(({ space, base }) => {
+        return client.tables.create(base.id, {
+          name: `Demo Table ${Date.now()}`,
+          description: 'Field Demo Table'
+        }).then(table => ({ space, base, table }))
+      })
+      .then(({ space, base, table }) => {
+        return runFieldDemo({ 
+          client, 
+          spaceId: space.id,
+          baseId: base.id,
+          tableId: table.id,
+          fieldIds: {}, 
+          recordIds: [], 
+          viewIds: [] 
+        })
+      })
+      .then(success => {
+        process.exit(success ? 0 : 1)
+      })
+      .catch(error => {
+        console.error('未处理的错误:', error)
+        process.exit(1)
+      })
+  })
+}
+

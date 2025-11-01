@@ -1,0 +1,90 @@
+{
+  "name": "sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for LuckDB with ShareDB integration",
+  "main": "./dist/luckdb.cjs.js",
+  "module": "./dist/luckdb.es.mjs",
+  "types": "./dist/luckdb.es.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/luckdb.es.mjs",
+      "require": "./dist/luckdb.cjs.js",
+      "types": "./dist/luckdb.es.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "format": "prettier --write \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\"",
+    "lint": "eslint src tests",
+    "type-check": "tsc --noEmit",
+    "examples": "tsx --env-file=examples/.env examples/runner.ts",
+    "examples:sharedb": "tsx --env-file=examples/.env examples/sharedb/subscribe-basic.ts",
+    "demo": "tsx examples/runner.ts",
+    "demo:all": "tsx examples/runner.ts",
+    "demo:auth": "tsx examples/runner.ts --module=auth",
+    "demo:space": "tsx examples/runner.ts --module=space",
+    "demo:base": "tsx examples/runner.ts --module=base",
+    "demo:table": "tsx examples/runner.ts --module=table",
+    "demo:field": "tsx examples/runner.ts --module=field",
+    "demo:record": "tsx examples/runner.ts --module=record",
+    "demo:view": "tsx examples/runner.ts --module=view",
+    "demo:sharedb": "tsx examples/runner.ts --module=sharedb",
+    "demo:attachment": "tsx examples/runner.ts --module=attachment",
+    "setup:data": "tsx examples/setup-data.ts",
+    "test:sharedb": "tsx examples/demos/08-sharedb.ts"
+  },
+  "keywords": [
+    "luckdb",
+    "sdk",
+    "typescript",
+    "sharedb",
+    "realtime",
+    "collaboration",
+    "websocket"
+  ],
+  "author": "LuckDB Team",
+  "license": "MIT",
+  "dependencies": {
+    "@teamwork/websocket-json-stream": "^2.0.0",
+    "reconnecting-websocket": "^4.4.0",
+    "sharedb": "^4.0.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@rollup/plugin-alias": "^6.0.0",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@types/node": "^20.0.0",
+    "@types/sharedb": "^3.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/ui": "^1.0.0",
+    "dotenv": "^16.0.0",
+    "eslint": "^8.0.0",
+    "jsdom": "^27.0.1",
+    "prettier": "^3.0.0",
+    "rollup": "^4.0.0",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.1.6",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luckdb/luckdb-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/luckdb/luckdb-sdk/issues"
+  },
+  "homepage": "https://github.com/luckdb/luckdb-sdk#readme"
+}

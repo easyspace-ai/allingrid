@@ -1,0 +1,3 @@
+-- 删除视图表
+DROP TABLE IF EXISTS view CASCADE;
+

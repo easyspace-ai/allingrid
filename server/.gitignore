@@ -1,0 +1,92 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+
+# Go workspace file
+go.work
+go.work.sum
+
+# 构建输出
+/bin/
+/dist/
+/tmp/
+main
+server
+server_test
+teable-backend*
+
+# 依赖
+vendor/
+
+# 测试覆盖率
+coverage.out
+coverage.html
+*.cover
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志文件
+*.log
+logs/
+
+# 配置文件(本地)
+config.local.yaml
+.env
+.env.local
+.env.production
+
+# 上传文件
+uploads/
+*.upload
+
+# 数据库
+*.db
+*.sqlite
+data.db
+
+# 缓存
+.cache/
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+*.temp
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Air热重载
+build-errors.log
+
+# Swagger生成的文件
+/api/swagger/docs.go
+/api/swagger/swagger.json
+/api/swagger/swagger.yaml
+
+# 前端静态文件 (由构建脚本复制)
+/internal/interfaces/http/web/
+
+# 备份文件
+*.bak
+*.backup
+*_old.*
+*_backup.*
+
+# 文档归档
+docs/archive/
+cmd/sharedb-test/archive/

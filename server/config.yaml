@@ -1,0 +1,214 @@
+server:
+  host: '0.0.0.0'
+  port: 8080
+  mode: 'debug'
+  read_timeout: '30s'
+  write_timeout: '30s'
+  idle_timeout: '120s'
+  max_header_bytes: 1048576 # 1MB
+  shutdown_timeout: '10s'
+  enable_cors: true
+  enable_swagger: true
+  permissions_disabled: true # 开发环境禁用权限检查
+
+database:
+  host: 'localhost'
+  port: 5432
+  user: 'luckdb'
+  password: 'luckdb'
+  name: 'luckdb_dev'
+  ssl_mode: 'disable'
+  max_idle_conns: 25 # ✅ 优化：10 -> 25
+  max_open_conns: 200 # ✅ 优化：100 -> 200
+  conn_max_lifetime: '1h'
+  log_level: 'warn' # ✅ 优化：减少启动时的SQL查询日志，只显示警告和错误
+
+redis:
+  host: 'localhost'
+  port: 6379
+  password: ''
+  db: 0
+  pool_size: 10
+  dial_timeout: '5s'
+
+jwt:
+  secret: 'your-secret-key-change-in-production'
+  access_token_ttl: '24h'
+  refresh_token_ttl: '168h' # 7 days
+  issuer: 'teable-api'
+  enable_refresh: true
+
+storage:
+  type: 'local'
+  local:
+    upload_path: './uploads'
+    url_prefix: '/uploads'
+  cdn_domain: ''
+
+logger:
+  level: 'info'
+  format: 'console'
+  output_path: '/test/logs/app.log'
+
+# SQL日志配置 - 优化启动性能
+sql_logger:
+  enabled: true
+  output_path: '/test/logs/sql.log' # SQL日志文件路径
+  max_size: 100 # 单个文件最大大小(MB)
+  max_backups: 5 # 保留的旧日志文件数量
+  max_age: 30 # 保留的最大天数
+  compress: false # 不压缩，方便查看
+  # ✅ 优化：启动时跳过元数据查询日志
+  skip_metadata_queries: true
+  # ✅ 优化：只记录慢查询（>100ms）
+  slow_query_threshold: '100ms'
+
+queue:
+  redis_addr: 'localhost:6379'
+  redis_password: ''
+  redis_db: 1
+  max_retries: 3
+  queue_critical: 'critical'
+  queue_default: 'default'
+  queue_low: 'low'
+
+websocket:
+  enable_redis_pubsub: true
+  redis_prefix: 'teable:ws'
+  heartbeat_interval: '30s'
+  connection_timeout: '60s'
+  max_connections: 1000
+  enable_presence: true
+
+# AI配置
+ai:
+  default_provider: openai
+  providers:
+    openai:
+      type: openai
+      api_key: ${OPENAI_API_KEY} # 从环境变量获取
+      default_model: gpt-3.5-turbo
+      timeout: 30
+      rate_limit:
+        requests_per_minute: 60
+        tokens_per_minute: 90000
+        concurrent_requests: 10
+    deepseek:
+      type: deepseek
+      api_key: ${DEEPSEEK_API_KEY} # 从环境变量获取
+      base_url: https://api.deepseek.com/v1
+      default_model: deepseek-chat
+      timeout: 30
+      rate_limit:
+        requests_per_minute: 60
+        tokens_per_minute: 90000
+        concurrent_requests: 10
+
+# MCP 配置
+mcp:
+  enabled: true
+  server:
+    host: '0.0.0.0'
+    port: 8081
+    protocol: 'http'
+    timeout: '30s'
+
+  auth:
+    api_key:
+      enabled: true
+      header: 'X-MCP-API-Key'
+      format: 'key_id:key_secret'
+      key_length: 32
+      secret_length: 64
+      default_ttl: '8760h' # 1年
+      max_ttl: '87600h' # 10年
+
+    jwt:
+      enabled: true
+      header: 'Authorization'
+      prefix: 'Bearer '
+      secret: '${JWT_SECRET}'
+      issuer: 'luckdb-mcp'
+      audience: 'mcp-client'
+      access_token_ttl: '1h'
+      refresh_token_ttl: '24h'
+
+    session:
+      enabled: true
+      cookie_name: 'mcp_session'
+      secure: true
+      http_only: true
+      same_site: 'strict'
+      max_age: '24h'
+
+  tools:
+    enabled_tools:
+      - 'query_records'
+      - 'search_records'
+      - 'aggregate_data'
+      - 'create_record'
+      - 'update_record'
+      - 'delete_record'
+      - 'bulk_operations'
+      - 'get_table_schema'
+      - 'create_field'
+      - 'create_view'
+      - 'generate_chart'
+      - 'export_data'
+
+  resources:
+    enabled_resources:
+      - 'table_schema'
+      - 'record_data'
+      - 'metadata'
+
+  prompts:
+    enabled_prompts:
+      - 'analyze_data'
+      - 'create_summary'
+      - 'generate_insights'
+
+  rate_limit:
+    enabled: true
+    redis_url: '${REDIS_URL}'
+    strategies:
+      user:
+        type: 'user'
+        requests_per_minute: 100
+        burst_size: 20
+      api_key:
+        type: 'api_key'
+        requests_per_minute: 1000
+        burst_size: 100
+      ip:
+        type: 'ip'
+        requests_per_minute: 200
+        burst_size: 50
+
+  security:
+    validation:
+      enabled: true
+      max_query_length: 10000
+      max_parameters: 100
+      dangerous_keywords:
+        - 'DROP'
+        - 'DELETE'
+        - 'UPDATE'
+        - 'INSERT'
+        - 'ALTER'
+        - 'CREATE'
+
+    audit:
+      enabled: true
+      log_level: 'info'
+      sensitive_fields:
+        - 'password'
+        - 'token'
+        - 'secret'
+      retention_days: 90
+
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5
+      timeout: '30s'
+      max_requests: 3

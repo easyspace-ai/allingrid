@@ -1,0 +1,71 @@
+# 启动优化配置
+# 用于减少启动时的重复数据库查询
+
+startup_optimization:
+  # 数据库元数据缓存
+  metadata_cache:
+    enabled: true
+    # 缓存元数据查询结果，避免重复查询
+    cache_duration: '5m' # 5分钟缓存
+    # 跳过启动时的详细元数据检查
+    skip_detailed_checks: true
+    # 只检查核心表的存在性
+    check_core_tables_only: true
+    core_tables:
+      - 'domain_events'
+      - 'users'
+      - 'tables'
+      - 'fields'
+      - 'records'
+
+  # 数据库连接优化
+  connection_optimization:
+    # 预热连接池
+    warmup_connections: true
+    # 并行初始化
+    parallel_init: true
+    # 延迟非关键初始化
+    lazy_init_non_critical: true
+
+  # 日志优化
+  logging_optimization:
+    # 启动时减少日志输出
+    quiet_startup: true
+    # 跳过元数据查询日志
+    skip_metadata_logs: true
+    # 只记录错误和警告
+    startup_log_level: 'warn'
+
+  # 服务初始化优化
+  service_init:
+    # 并行初始化服务
+    parallel_services: true
+    # 延迟非关键服务
+    lazy_non_critical: true
+    # 关键服务优先
+    critical_services_first: true
+    critical_services:
+      - 'database'
+      - 'redis'
+      - 'business_events'
+    non_critical_services:
+      - 'plugins'
+      - 'detailed_metadata'
+      - 'audit_logging'
+
+# 性能监控
+performance_monitoring:
+  # 启动时间监控
+  startup_timing:
+    enabled: true
+    log_slow_components: true
+    slow_threshold: '100ms'
+  
+  # 数据库查询监控
+  query_monitoring:
+    enabled: true
+    log_slow_queries: true
+    slow_query_threshold: '50ms'
+    # 跳过元数据查询监控
+    skip_metadata_monitoring: true
+
