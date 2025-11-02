@@ -77,7 +77,8 @@ func (l *SQLLogger) Trace(ctx context.Context, begin time.Time, fc func() (strin
 		if appLogger.SQLLogger != nil {
 			appLogger.SQLLogger.LogSQL(sql, nil, elapsed, rows, nil)
 		}
-	case l.config.LogLevel == logger.Info:
+	case l.config.LogLevel >= logger.Info:
+		// 当日志级别为 Info 或更低时，记录所有SQL查询
 		sql, rows := fc()
 		l.logSQL("🔍 SQL Query", sql, rows, elapsed, nil)
 		// 同时写入独立的SQL日志文件
@@ -123,10 +124,6 @@ func (l *SQLLogger) formatSQL(sql string) string {
 	sql = regexp.MustCompile(`\s+`).ReplaceAllString(sql, " ")
 	sql = strings.TrimSpace(sql)
 
-	// 如果SQL太长，截断并添加省略号
-	if len(sql) > 200 {
-		sql = sql[:200] + "..."
-	}
-
+	// 不截断SQL，显示完整查询以便调试
 	return sql
 }

@@ -188,6 +188,9 @@ export class LuckDBClient extends EventEmitter {
     const token = this.authStore.token
     if (token) {
       requestHeaders['Authorization'] = `Bearer ${token}`
+      console.log('[Client.initSendOptions] 已添加认证头，token 长度:', token.length)
+    } else {
+      console.warn('[Client.initSendOptions] 没有 token，请求可能失败')
     }
 
     // 处理自动取消
@@ -234,15 +237,42 @@ export class LuckDBClient extends EventEmitter {
 
     const contentType = response.headers.get('content-type')
     if (contentType?.includes('application/json')) {
-      const data = await response.json()
+      let data: any
+      try {
+        data = await response.json()
+      } catch (error) {
+        console.error('Failed to parse JSON response:', error)
+        throw new Error('响应解析失败：无效的 JSON 格式')
+      }
+
       // 统一解包服务端标准响应结构 { code, message, data, ... }
       if (data && typeof data === 'object' && 'code' in data && 'data' in data) {
-        return (data as any).data
+        console.log('[Client] Detected standard response format with code and data')
+        console.log('[Client] data.code:', data.code)
+        console.log('[Client] data.data:', data.data)
+        
+        // 确保 data 不为 undefined 或 null
+        if (data.data === undefined || data.data === null) {
+          console.warn('[Client] Response data field is undefined or null, returning full response')
+          return data
+        }
+        
+        console.log('[Client] Returning unwrapped data:', data.data)
+        return data.data
       }
+      
+      // 如果没有标准格式，直接返回数据
+      if (data === undefined || data === null) {
+        console.warn('[Client] Response data is undefined or null, returning empty object')
+        return {}
+      }
+      
+      console.log('[Client] Returning data as-is (no standard format):', data)
       return data
     }
 
-    return response.text()
+    const text = await response.text()
+    return text || {}
   }
 
   /**

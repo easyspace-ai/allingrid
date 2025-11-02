@@ -1,5 +1,5 @@
 import { BaseService } from './BaseService'
-import { PaginationRequest, PaginationResponse } from '@/types/common'
+import { PaginationRequest, PaginationResponse, ListResponse } from '@/types/common'
 
 export interface RecordHistory {
   id: string
@@ -67,8 +67,8 @@ export class RecordHistoryService extends BaseService {
     page = 1,
     perPage = 20,
     filter: RecordHistoryListFilter = {}
-  ): Promise<PaginationResponse<RecordHistoryResponse>> {
-    return this.send<PaginationResponse<RecordHistoryResponse>>('/api/v1/record-history', {
+  ): Promise<ListResponse<RecordHistoryResponse>> {
+    return this.send<ListResponse<RecordHistoryResponse>>('/api/v1/record-history', {
       method: 'GET',
       query: {
         page,
@@ -115,8 +115,8 @@ export class RecordHistoryService extends BaseService {
     recordId: string,
     page = 1,
     perPage = 20
-  ): Promise<PaginationResponse<RecordHistoryResponse>> {
-    return this.send<PaginationResponse<RecordHistoryResponse>>(`/api/v1/records/${recordId}/history`, {
+  ): Promise<ListResponse<RecordHistoryResponse>> {
+    return this.send<ListResponse<RecordHistoryResponse>>(`/api/v1/records/${recordId}/history`, {
       method: 'GET',
       query: {
         page,
@@ -133,8 +133,8 @@ export class RecordHistoryService extends BaseService {
     page = 1,
     perPage = 20,
     filter: Omit<RecordHistoryListFilter, 'tableId'> = {}
-  ): Promise<PaginationResponse<RecordHistoryResponse>> {
-    return this.send<PaginationResponse<RecordHistoryResponse>>(`/api/v1/tables/${tableId}/history`, {
+  ): Promise<ListResponse<RecordHistoryResponse>> {
+    return this.send<ListResponse<RecordHistoryResponse>>(`/api/v1/tables/${tableId}/history`, {
       method: 'GET',
       query: {
         page,
@@ -152,8 +152,8 @@ export class RecordHistoryService extends BaseService {
     fieldId: string,
     page = 1,
     perPage = 20
-  ): Promise<PaginationResponse<RecordHistoryResponse>> {
-    return this.send<PaginationResponse<RecordHistoryResponse>>(`/api/v1/tables/${tableId}/fields/${fieldId}/history`, {
+  ): Promise<ListResponse<RecordHistoryResponse>> {
+    return this.send<ListResponse<RecordHistoryResponse>>(`/api/v1/tables/${tableId}/fields/${fieldId}/history`, {
       method: 'GET',
       query: {
         page,
@@ -170,8 +170,8 @@ export class RecordHistoryService extends BaseService {
     page = 1,
     perPage = 20,
     filter: Omit<RecordHistoryListFilter, 'userId'> = {}
-  ): Promise<PaginationResponse<RecordHistoryResponse>> {
-    return this.send<PaginationResponse<RecordHistoryResponse>>(`/api/v1/users/${userId}/history`, {
+  ): Promise<ListResponse<RecordHistoryResponse>> {
+    return this.send<ListResponse<RecordHistoryResponse>>(`/api/v1/users/${userId}/history`, {
       method: 'GET',
       query: {
         page,

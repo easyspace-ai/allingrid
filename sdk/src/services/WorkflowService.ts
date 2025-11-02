@@ -1,5 +1,5 @@
 import { BaseService } from './BaseService'
-import { PaginationRequest, PaginationResponse } from '@/types/common'
+import { PaginationRequest, PaginationResponse, ListResponse } from '@/types/common'
 
 export interface Workflow {
   id: string
@@ -96,8 +96,8 @@ export class WorkflowService extends BaseService {
     page = 1,
     perPage = 20,
     filter: WorkflowListFilter = {}
-  ): Promise<PaginationResponse<WorkflowResponse>> {
-    return this.send<PaginationResponse<WorkflowResponse>>('/api/v1/workflows', {
+  ): Promise<ListResponse<WorkflowResponse>> {
+    return this.send<ListResponse<WorkflowResponse>>('/api/v1/workflows', {
       method: 'GET',
       query: {
         page,
@@ -193,8 +193,8 @@ export class WorkflowService extends BaseService {
     id: string,
     page = 1,
     perPage = 20
-  ): Promise<PaginationResponse<WorkflowExecution>> {
-    return this.send<PaginationResponse<WorkflowExecution>>(`/api/v1/workflows/${id}/executions`, {
+  ): Promise<ListResponse<WorkflowExecution>> {
+    return this.send<ListResponse<WorkflowExecution>>(`/api/v1/workflows/${id}/executions`, {
       method: 'GET',
       query: {
         page,

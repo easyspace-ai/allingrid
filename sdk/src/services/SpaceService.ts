@@ -27,7 +27,7 @@ export class SpaceService extends BaseService {
     // 添加兼容字段
     return {
       ...response,
-      ownerId: response.createdBy || response.ownerId
+      ownerId: response.createdBy ?? response.ownerId ?? ''
     }
   }
 
@@ -73,7 +73,7 @@ export class SpaceService extends BaseService {
     // 添加兼容字段并转换格式
     const items = spaces.map(space => ({
       ...space,
-      ownerId: space.createdBy || space.ownerId
+      ownerId: space.createdBy ?? space.ownerId ?? ''
     }))
 
     const totalPages = Math.ceil(total / limit) || 1
@@ -124,7 +124,7 @@ export class SpaceService extends BaseService {
     // 添加兼容字段
     return {
       ...response,
-      ownerId: response.createdBy || response.ownerId
+      ownerId: response.createdBy ?? response.ownerId ?? ''
     }
   }
 
@@ -140,7 +140,7 @@ export class SpaceService extends BaseService {
     // 添加兼容字段
     return {
       ...response,
-      ownerId: response.createdBy || response.ownerId
+      ownerId: response.createdBy ?? response.ownerId ?? ''
     }
   }
 
@@ -253,7 +253,7 @@ export class SpaceService extends BaseService {
     // 添加兼容字段
     const items = bases.map(base => ({
       ...base,
-      ownerId: base.createdBy || base.ownerId
+      ownerId: base.createdBy ?? base.ownerId ?? ''
     }))
 
     const totalPages = Math.ceil(total / limit) || 1
@@ -306,7 +306,7 @@ export class SpaceService extends BaseService {
     // 添加兼容字段
     return {
       ...response,
-      ownerId: response.createdBy || response.ownerId
+      ownerId: response.createdBy ?? response.ownerId ?? ''
     }
   }
 }

@@ -1,5 +1,5 @@
 import { BaseService } from './BaseService'
-import { PaginationRequest, PaginationResponse } from '@/types/common'
+import { PaginationRequest, PaginationResponse, ListResponse } from '@/types/common'
 import {
   Collaborator,
   CollaboratorCreateRequest,
@@ -22,8 +22,8 @@ export class CollaboratorService extends BaseService {
     page = 1,
     perPage = 20,
     filter: CollaboratorListFilter = {}
-  ): Promise<PaginationResponse<CollaboratorResponse>> {
-    return this.send<PaginationResponse<CollaboratorResponse>>(`/api/v1/${resourceType}s/${resourceId}/collaborators`, {
+  ): Promise<ListResponse<CollaboratorResponse>> {
+    return this.send<ListResponse<CollaboratorResponse>>(`/api/v1/${resourceType}s/${resourceId}/collaborators`, {
       method: 'GET',
       query: {
         page,
@@ -122,8 +122,8 @@ export class CollaboratorService extends BaseService {
     resourceId: string,
     page = 1,
     perPage = 20
-  ): Promise<PaginationResponse<InviteResponse>> {
-    return this.send<PaginationResponse<InviteResponse>>(`/api/v1/${resourceType}s/${resourceId}/invites`, {
+  ): Promise<ListResponse<InviteResponse>> {
+    return this.send<ListResponse<InviteResponse>>(`/api/v1/${resourceType}s/${resourceId}/invites`, {
       method: 'GET',
       query: { page, perPage }
     })
@@ -165,8 +165,8 @@ export class CollaboratorService extends BaseService {
   /**
    * 获取我的邀请
    */
-  async getMyInvites(page = 1, perPage = 20): Promise<PaginationResponse<InviteResponse>> {
-    return this.send<PaginationResponse<InviteResponse>>('/api/v1/invites/me', {
+  async getMyInvites(page = 1, perPage = 20): Promise<ListResponse<InviteResponse>> {
+    return this.send<ListResponse<InviteResponse>>('/api/v1/invites/me', {
       method: 'GET',
       query: { page, perPage }
     })

@@ -21,12 +21,13 @@ type CreateFieldRequest struct {
 
 // UpdateFieldRequest 更新字段请求
 type UpdateFieldRequest struct {
-	Name     *string                `json:"name"`
-	Options  map[string]interface{} `json:"options"`
-	Required *bool                  `json:"required"`
-	Unique   *bool                  `json:"unique"`
-    // 顶层默认值，兼容 SDK 传参
-    DefaultValue interface{}        `json:"defaultValue"`
+	Name        *string                `json:"name"`
+	Description *string                `json:"description"`
+	Options     map[string]interface{} `json:"options"`
+	Required    *bool                  `json:"required"`
+	Unique      *bool                  `json:"unique"`
+	// 顶层默认值，兼容 SDK 传参
+	DefaultValue interface{} `json:"defaultValue"`
 }
 
 // FieldResponse 字段响应

@@ -98,13 +98,21 @@ export function transformRecordToTableData<T extends Record<string, any>>(
   record: RecordResponse,
   fieldMapping: Map<string, string> // fieldId -> columnId
 ): T {
+  // 确保 ID 始终存在
   const data: any = { id: record.id }
   
   // 将字段数据映射到列数据
   const fields = record.data || record.fields || {}
+  
+  // 遍历所有字段映射，确保所有列都被创建（即使值为 null 或 undefined）
   fieldMapping.forEach((columnId, fieldId) => {
-    if (fields[fieldId] !== undefined) {
+    // 如果字段存在于记录中，无论值是什么（包括 null 和 undefined）都映射
+    // 这样确保所有记录都有相同的列结构
+    if (fieldId in fields) {
       data[columnId] = fields[fieldId]
+    } else {
+      // 如果字段不存在，设置为 null，确保列结构一致
+      data[columnId] = null
     }
   })
 

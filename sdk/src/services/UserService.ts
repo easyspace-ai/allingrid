@@ -1,5 +1,5 @@
 import { BaseService } from './BaseService'
-import { PaginationRequest, PaginationResponse } from '@/types/common'
+import { PaginationRequest, PaginationResponse, ListResponse } from '@/types/common'
 import {
   User,
   UserCreateRequest,
@@ -26,8 +26,8 @@ export class UserService extends BaseService {
     page = 1,
     perPage = 20,
     filter: UserListFilter = {}
-  ): Promise<PaginationResponse<UserResponse>> {
-    return this.send<PaginationResponse<UserResponse>>('/api/v1/users', {
+  ): Promise<ListResponse<UserResponse>> {
+    return this.send<ListResponse<UserResponse>>('/api/v1/users', {
       method: 'GET',
       query: {
         page,

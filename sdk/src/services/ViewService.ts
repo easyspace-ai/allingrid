@@ -143,25 +143,6 @@ export class ViewService extends BaseService {
   }
 
   /**
-   * 获取视图数据
-   */
-  async getData(
-    id: string,
-    page = 1,
-    perPage = 20,
-    additionalQuery: Record<string, any> = {}
-  ): Promise<PaginationResponse<any>> {
-    return this.send<PaginationResponse<any>>(`/api/v1/views/${id}/data`, {
-      method: 'GET',
-      query: {
-        page,
-        perPage,
-        ...additionalQuery
-      }
-    })
-  }
-
-  /**
    * 获取所有视图数据
    */
   async getAllData(id: string, additionalQuery: Record<string, any> = {}): Promise<any[]> {
@@ -189,19 +170,6 @@ export class ViewService extends BaseService {
     return this.send<ViewResponse>(`/api/v1/views/${id}/duplicate`, {
       method: 'POST',
       body: { name }
-    })
-  }
-
-  /**
-   * 获取视图统计
-   */
-  async getStats(id: string): Promise<{
-    recordCount: number
-    lastAccessedAt?: string
-    accessCount: number
-  }> {
-    return this.send(`/api/v1/views/${id}/stats`, {
-      method: 'GET'
     })
   }
 

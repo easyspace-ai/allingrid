@@ -14,6 +14,7 @@ interface DataGridProps<TData>
   extends ReturnType<typeof useDataGrid<TData>>,
     React.ComponentProps<"div"> {
   height?: number;
+  onDeleteField?: (fieldId: string) => void | Promise<void>;
 }
 
 export function DataGrid<TData>({
@@ -28,11 +29,33 @@ export function DataGrid<TData>({
   columnSizeVars,
   onRowAdd,
   onAddColumn,
+  onDeleteField,
   className,
   ...props
 }: DataGridProps<TData>) {
   const rows = table.getRowModel().rows;
   const columns = table.getAllColumns();
+  
+  // 详细调试：检查实际数据状态
+  React.useEffect(() => {
+    const virtualIndexes = rowVirtualizer.getVirtualIndexes();
+    const virtualItems = rowVirtualizer.getVirtualItems();
+    console.log("[DataGrid] 渲染状态调试:", {
+      rowVirtualizerCount: rowVirtualizer.options.count,
+      virtualIndexes: virtualIndexes,
+      virtualIndexesLength: virtualIndexes.length,
+      virtualItems: virtualItems.map(item => ({ index: item.index, start: item.start, size: item.size })),
+      virtualItemsLength: virtualItems.length,
+      tableRowsCount: rows.length,
+      tableRowIds: rows.map(r => r.id),
+      tableState: {
+        sorting: table.getState().sorting,
+        columnOrder: table.getState().columnOrder,
+        columnFilters: table.getState().columnFilters,
+        globalFilter: table.getState().globalFilter,
+      },
+    });
+  }, [rows, rowVirtualizer, table]);
 
   const meta = table.options.meta;
   const rowHeight = meta?.rowHeight ?? "short";
@@ -133,6 +156,7 @@ export function DataGrid<TData>({
                 onDragStateChange={setDragState}
                 onAddColumnClick={onAddColumn ? handleAddColumnClick : undefined}
                 addColumnTriggerRef={addColumnTriggerRef as React.RefObject<HTMLDivElement>}
+                onDeleteField={onDeleteField}
               />
             </div>
           ))}

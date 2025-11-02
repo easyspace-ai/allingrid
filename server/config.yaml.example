@@ -17,6 +17,7 @@ database:
   maxIdleConns: 10
   maxOpenConns: 100
   connMaxLifetime: 1h
+  log_level: info  # silent, error, warn, info - 设置为 info 可查看所有SQL查询
 
 redis:
   host: localhost
@@ -49,6 +50,14 @@ log:
   maxBackups: 3
   maxAge: 28  # days
   compress: true
+
+sql_logger:
+  enabled: true  # 启用SQL日志
+  output_path: logs/sql.log  # SQL日志文件路径
+  max_size: 100  # 单个文件最大大小(MB)
+  max_backups: 5  # 保留的旧日志文件数量
+  max_age: 30  # 保留的最大天数
+  compress: false  # 是否压缩
 
 cors:
   allowOrigins:

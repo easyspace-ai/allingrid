@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -67,17 +69,64 @@ func (pc *PerformanceCache) Get(ctx context.Context, key string, dest interface{
 
 	// 1. 先尝试本地缓存
 	if pc.localCache != nil {
-		if err := pc.localCache.Get(fullKey, dest); err == nil {
-			// Cache hit - no logging for performance (high frequency operation)
-			return nil
+		// ✅ 关键修复：对于字段相关的缓存，如果本地缓存命中但值为 nil 或空数组，继续查询 Redis
+		// 因为 nil 值或空数组可能是过期的（字段可能已经创建）
+		// 使用临时变量来检查本地缓存的值
+		var tempDest interface{}
+		if err := pc.localCache.Get(fullKey, &tempDest); err == nil {
+			// 本地缓存命中
+			// ✅ 关键修复：检查值是否为 nil 或空数组
+			// 如果本地缓存中的值是 nil 或空数组，不应该直接返回
+			// 应该继续查询 Redis，因为值可能是过期的（字段可能已经创建）
+			if tempDest != nil && !isNilValue(tempDest) && !isEmptySlice(tempDest) {
+				// 值不为 nil 且不为空数组，复制到 dest 并返回（正常走缓存）
+				if err := pc.copyValue(tempDest, dest); err == nil {
+					return nil
+				}
+				// 如果复制失败，继续查询 Redis
+			} else {
+				// ✅ 如果本地缓存中的值是 nil 或空数组，不直接返回
+				// 继续查询 Redis，因为值可能是过期的（字段可能已经创建）
+				pc.logger.Debug("Local cache contains nil or empty slice, checking Redis",
+					zap.String("key", fullKey),
+					zap.Bool("is_nil", isNilValue(tempDest)),
+					zap.Bool("is_empty_slice", isEmptySlice(tempDest)))
+			}
 		}
 	}
 
 	// 2. 尝试Redis缓存
 	if err := pc.redis.Get(ctx, fullKey, dest); err == nil {
-		// 写入本地缓存
+		// ✅ 简化逻辑：只对记录列表相关的缓存进行空数组检查
+		// 因为记录列表缓存已经禁用，这里主要是为了兼容性
+		// 其他场景（如字段列表）保持原有逻辑
+		if strings.Contains(key, "record:list:") {
+			var destValue interface{}
+			if err := pc.copyValue(dest, &destValue); err == nil {
+				// 只对记录列表进行空数组检查
+				if isEmptySlice(destValue) {
+					// ✅ 记录列表空数组：删除缓存并返回 CacheNotFound
+					pc.logger.Debug("Redis cache contains empty record list, deleting cache",
+						zap.String("key", fullKey))
+					// 同步删除缓存，确保立即生效
+					if err := pc.Delete(ctx, key); err != nil {
+						pc.logger.Warn("Failed to delete empty record list cache",
+							zap.String("key", fullKey),
+							zap.Error(err))
+					}
+					// 返回 CacheNotFound，让调用者继续查询数据库
+					return ErrCacheNotFound
+				}
+			}
+		}
+		// ✅ 值不为空：正常返回缓存值，并写入本地缓存
 		if pc.localCache != nil {
-			pc.localCache.Set(fullKey, dest, pc.config.LocalCacheTTL)
+			var destValue interface{}
+			if err := pc.copyValue(dest, &destValue); err == nil {
+				if !isEmptySlice(destValue) {
+					pc.localCache.Set(fullKey, destValue, pc.config.LocalCacheTTL)
+				}
+			}
 		}
 		// Cache hit from Redis - no logging for performance (high frequency)
 		return nil
@@ -85,6 +134,68 @@ func (pc *PerformanceCache) Get(ctx context.Context, key string, dest interface{
 
 	// Cache miss - no logging for performance (high frequency)
 	return ErrCacheNotFound
+}
+
+// copyValue 复制值（辅助方法）
+func (pc *PerformanceCache) copyValue(src, dest interface{}) error {
+	// 使用 JSON 序列化/反序列化来复制值
+	data, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, dest)
+}
+
+// isNilValue 检查值是否为 nil（包括接口类型和指针类型）
+func isNilValue(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Ptr, reflect.Interface, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func:
+		return rv.IsNil()
+	default:
+		return false
+	}
+}
+
+// isEmptySlice 检查值是否为空切片或空数组
+func isEmptySlice(v interface{}) bool {
+	if v == nil {
+		return false // nil 不是空切片，是 nil
+	}
+	rv := reflect.ValueOf(v)
+	// 如果是指针，获取指向的值
+	if rv.Kind() == reflect.Ptr {
+		if rv.IsNil() {
+			return false
+		}
+		rv = rv.Elem()
+	}
+	switch rv.Kind() {
+	case reflect.Slice, reflect.Array:
+		return rv.Len() == 0
+	case reflect.Struct:
+		// ✅ 简化逻辑：对于记录列表结构体（包含 Records 和 Total 字段），检查是否为空
+		// 主要用于记录列表缓存场景，虽然记录列表缓存已禁用，但保留此逻辑以兼容性
+		recordsField := rv.FieldByName("Records")
+		totalField := rv.FieldByName("Total")
+		
+		// 如果结构体有 Records 和 Total 字段，检查是否为空结果
+		if recordsField.IsValid() && totalField.IsValid() {
+			// Records 字段必须是切片类型
+			if recordsField.Kind() == reflect.Slice && recordsField.Len() == 0 {
+				// Total 字段必须是数字类型且为 0
+				if (totalField.Kind() == reflect.Int64 || totalField.Kind() == reflect.Int) && totalField.Int() == 0 {
+					return true // Records 为空且 Total 为 0，认为是空结果
+				}
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }
 
 // Set 设置缓存（多级缓存）
@@ -160,10 +271,47 @@ func (pc *PerformanceCache) DeletePattern(ctx context.Context, pattern string) e
 		return err
 	}
 
-	// 注意：本地缓存无法按模式删除，只能清空所有本地缓存
-	// 或者实现一个更复杂的模式匹配机制
+	// ❌ 关键修复：本地缓存无法按模式删除，需要手动清除匹配的键
+	// 由于本地缓存是进程内缓存，需要遍历所有键并匹配模式
+	// 为了简化，如果模式包含通配符，清除所有匹配该模式的本地缓存项
+	// 对于精确模式（如 field:table:<table_id>），只清除完全匹配的键
+	// ❌ 关键修复：由于模式删除的复杂性，对于字段相关的缓存模式，清除所有匹配的本地缓存键
 	if pc.localCache != nil {
-		pc.logger.Warn("Local cache pattern deletion not implemented, consider clearing local cache")
+		// 检查模式是否是字段相关的（field:*）
+		if strings.HasPrefix(pattern, "field:") {
+			// 对于字段相关的模式，我们需要清除所有相关的本地缓存
+			// 因为字段缓存键格式是 "field:id:<field_id>" 或 "field:table:<table_id>"
+			// 如果模式是 "field:table:<table_id>"，我们需要清除所有以 "field:" 开头的本地缓存键
+			// 为了简化，我们清除所有 "field:" 相关的本地缓存项
+			pc.logger.Warn("Field cache pattern detected, clearing all field-related local cache",
+				zap.String("pattern", pattern),
+				zap.String("full_pattern", fullPattern))
+			// 注意：由于本地缓存无法按模式删除，我们需要清除所有字段相关的缓存
+			// 或者清除完全匹配的键
+			// 这里我们采用保守策略：清除完全匹配的键，如果模式是精确匹配
+			if !strings.Contains(fullPattern, "*") {
+				// 精确模式：只清除完全匹配的键
+				pc.localCache.Delete(fullPattern)
+				pc.logger.Debug("Deleted exact local cache key",
+					zap.String("key", fullPattern))
+			} else {
+				// 通配符模式：清空所有本地缓存（保守策略，避免不一致）
+				pc.logger.Warn("Pattern contains wildcard, clearing all local cache",
+					zap.String("pattern", fullPattern))
+				pc.localCache.Clear()
+			}
+		} else {
+			// 非字段相关的模式：按原来的逻辑处理
+			if strings.Contains(fullPattern, "*") {
+				pc.logger.Warn("Pattern contains wildcard, clearing local cache",
+					zap.String("pattern", fullPattern))
+				pc.localCache.Clear()
+			} else {
+				pc.localCache.Delete(fullPattern)
+				pc.logger.Debug("Deleted local cache key",
+					zap.String("key", fullPattern))
+			}
+		}
 	}
 
 	pc.logger.Info("Cache deleted by pattern", // Info level - less frequent operation
@@ -171,6 +319,13 @@ func (pc *PerformanceCache) DeletePattern(ctx context.Context, pattern string) e
 	)
 
 	return nil
+}
+
+// InvalidatePattern 按模式使缓存失效（别名方法，用于 CacheProvider 接口）
+// ❌ 关键修复：为了兼容 CacheProvider 接口，添加 InvalidatePattern 方法
+// 它委托给 DeletePattern 方法
+func (pc *PerformanceCache) InvalidatePattern(ctx context.Context, pattern string) error {
+	return pc.DeletePattern(ctx, pattern)
 }
 
 // GetOrSet 获取缓存，如果不存在则设置

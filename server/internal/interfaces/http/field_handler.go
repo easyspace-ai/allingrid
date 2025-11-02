@@ -1,6 +1,8 @@
 package http
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/easyspace-ai/luckdb/server/internal/application"
@@ -65,6 +67,9 @@ func (h *FieldHandler) GetField(c *gin.Context) {
 // UpdateField 更新字段
 func (h *FieldHandler) UpdateField(c *gin.Context) {
 	fieldID := c.Param("fieldId")
+	
+	// 添加日志：记录接收到的 fieldId
+	fmt.Printf("[FieldHandler.UpdateField] 收到更新请求, fieldId: %s\n", fieldID)
 
 	var req dto.UpdateFieldRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -74,6 +79,7 @@ func (h *FieldHandler) UpdateField(c *gin.Context) {
 
 	resp, err := h.fieldService.UpdateField(c.Request.Context(), fieldID, req)
 	if err != nil {
+		fmt.Printf("[FieldHandler.UpdateField] 更新失败, fieldId: %s, error: %v\n", fieldID, err)
 		response.Error(c, err)
 		return
 	}

@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // 使用 SDK 构建版本（dist）
+      "luckdb-sdk": path.resolve(__dirname, "../sdk/dist/luckdb.es.mjs"),
     },
   },
 })

@@ -53,21 +53,46 @@ func (r *FieldRepositoryImpl) Save(ctx context.Context, field *entity.Field) err
 func (r *FieldRepositoryImpl) FindByID(ctx context.Context, id valueobject.FieldID) (*entity.Field, error) {
 	var dbField models.Field
 
+	fieldIDStr := id.String()
+	logger.Info("🔍 FieldRepositoryImpl.FindByID 开始查询数据库",
+		logger.String("field_id", fieldIDStr))
+
 	// ✅ 显式指定 schema
 	err := r.db.WithContext(ctx).
 		Table("field").
-		Where("id = ?", id.String()).
+		Where("id = ?", fieldIDStr).
 		Where("deleted_time IS NULL").
 		First(&dbField).Error
 
 	if err == gorm.ErrRecordNotFound {
+		logger.Warn("⚠️ FieldRepositoryImpl.FindByID 数据库查询结果为空（记录不存在）",
+			logger.String("field_id", fieldIDStr))
 		return nil, nil
 	}
 	if err != nil {
+		logger.Error("❌ FieldRepositoryImpl.FindByID 数据库查询失败",
+			logger.String("field_id", fieldIDStr),
+			logger.ErrorField(err))
 		return nil, fmt.Errorf("failed to find field: %w", err)
 	}
 
-	return mapper.ToFieldEntity(&dbField)
+	logger.Info("✅ FieldRepositoryImpl.FindByID 数据库查询成功",
+		logger.String("field_id", fieldIDStr),
+		logger.String("field_name", dbField.Name))
+
+	field, err := mapper.ToFieldEntity(&dbField)
+	if err != nil {
+		logger.Error("❌ FieldRepositoryImpl.FindByID 映射失败",
+			logger.String("field_id", fieldIDStr),
+			logger.ErrorField(err))
+		return nil, fmt.Errorf("failed to map field: %w", err)
+	}
+	if field == nil {
+		logger.Warn("⚠️ FieldRepositoryImpl.FindByID 映射结果为空",
+			logger.String("field_id", fieldIDStr))
+	}
+	
+	return field, nil
 }
 
 // FindByTableID 查找表的所有字段

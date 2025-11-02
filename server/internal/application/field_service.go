@@ -454,13 +454,42 @@ func (s *FieldService) GetField(ctx context.Context, fieldID string) (*dto.Field
 func (s *FieldService) UpdateField(ctx context.Context, fieldID string, req dto.UpdateFieldRequest) (*dto.FieldResponse, error) {
 	// 1. 查找字段
 	id := valueobject.NewFieldID(fieldID)
+	logger.Info("🔍 UpdateField 开始查找字段",
+		logger.String("field_id", fieldID),
+		logger.String("field_id_parsed", id.String()),
+		logger.String("field_id_is_empty", fmt.Sprintf("%v", id.IsEmpty())))
+	
+	// ❌ 关键修复：如果字段ID为空，直接返回错误
+	if id.IsEmpty() {
+		logger.Error("❌ UpdateField 字段ID为空",
+			logger.String("field_id", fieldID))
+		return nil, pkgerrors.ErrBadRequest.WithDetails("字段ID不能为空")
+	}
+	
+	// ❌ 关键修复：强制从数据库查询，不使用缓存
+	// 因为缓存可能已经被清除，或者缓存值不准确
+	// 直接使用底层仓库查询，绕过缓存层
+	logger.Info("🔍 UpdateField 直接查询数据库（绕过缓存）",
+		logger.String("field_id", fieldID))
+	
 	field, err := s.fieldRepo.FindByID(ctx, id)
 	if err != nil {
+		logger.Error("❌ UpdateField 查找字段失败",
+			logger.String("field_id", fieldID),
+			logger.ErrorField(err))
 		return nil, pkgerrors.ErrDatabaseOperation.WithDetails(fmt.Sprintf("查找字段失败: %v", err))
 	}
 	if field == nil {
+		logger.Error("❌ UpdateField 字段不存在",
+			logger.String("field_id", fieldID),
+			logger.String("field_id_parsed", id.String()))
 		return nil, pkgerrors.ErrNotFound.WithDetails("字段不存在")
 	}
+	
+	logger.Info("✅ UpdateField 找到字段",
+		logger.String("field_id", fieldID),
+		logger.String("field_name", field.Name().String()),
+		logger.String("table_id", field.TableID()))
 
 	// 2. 更新名称
 	if req.Name != nil && *req.Name != "" {
@@ -483,7 +512,14 @@ func (s *FieldService) UpdateField(ctx context.Context, fieldID string, req dto.
 		}
 	}
 
-    // 3. 更新Options（如公式表达式等）
+	// 3. 更新描述
+	if req.Description != nil {
+		if err := field.UpdateDescription(*req.Description); err != nil {
+			return nil, pkgerrors.ErrValidationFailed.WithDetails(fmt.Sprintf("更新描述失败: %v", err))
+		}
+	}
+
+    // 4. 更新Options（如公式表达式等）
     if req.Options != nil && len(req.Options) > 0 || req.DefaultValue != nil {
         // 顶层 defaultValue 兼容：注入到 options 中
         if req.DefaultValue != nil {
@@ -564,7 +600,7 @@ func (s *FieldService) UpdateField(ctx context.Context, fieldID string, req dto.
 		s.applyCommonFieldOptions(field, req.Options)
 	}
 
-	// 4. 更新约束
+	// 5. 更新约束
 	if req.Required != nil {
 		field.SetRequired(*req.Required)
 	}
@@ -572,7 +608,7 @@ func (s *FieldService) UpdateField(ctx context.Context, fieldID string, req dto.
 		field.SetUnique(*req.Unique)
 	}
 
-	// 5. 循环依赖检测（如果是虚拟字段且Options被更新）
+	// 6. 循环依赖检测（如果是虚拟字段且Options被更新）
 	if req.Options != nil && len(req.Options) > 0 && isVirtualFieldType(field.Type().String()) {
 		logger.Info("🔍 字段更新触发循环依赖检测",
 			logger.String("field_id", fieldID),
@@ -585,14 +621,14 @@ func (s *FieldService) UpdateField(ctx context.Context, fieldID string, req dto.
 		}
 	}
 
-	// 6. 保存
+	// 7. 保存
 	if err := s.fieldRepo.Save(ctx, field); err != nil {
 		return nil, pkgerrors.ErrDatabaseOperation.WithDetails(fmt.Sprintf("保存字段失败: %v", err))
 	}
 
 	logger.Info("字段更新成功", logger.String("field_id", fieldID))
 
-	// 7. ✨ 清除依赖图缓存（如果是虚拟字段）
+	// 8. ✨ 清除依赖图缓存（如果是虚拟字段）
 	if s.depGraphRepo != nil && field.IsComputed() {
 		if err := s.depGraphRepo.InvalidateCache(ctx, field.TableID()); err != nil {
 			logger.Warn("清除依赖图缓存失败（不影响字段更新）",
@@ -602,7 +638,7 @@ func (s *FieldService) UpdateField(ctx context.Context, fieldID string, req dto.
 		}
 	}
 
-	// 8. ✨ 实时推送字段更新事件
+	// 9. ✨ 实时推送字段更新事件
 	if s.broadcaster != nil {
 		s.broadcaster.BroadcastFieldUpdate(field.TableID(), field)
 		logger.Info("字段更新事件已广播 ✨",

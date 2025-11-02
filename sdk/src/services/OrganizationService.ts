@@ -1,5 +1,5 @@
 import { BaseService } from './BaseService'
-import { PaginationRequest, PaginationResponse } from '@/types/common'
+import { PaginationRequest, PaginationResponse, ListResponse } from '@/types/common'
 
 export interface Organization {
   id: string
@@ -62,8 +62,8 @@ export class OrganizationService extends BaseService {
     page = 1,
     perPage = 20,
     filter: OrganizationListFilter = {}
-  ): Promise<PaginationResponse<OrganizationResponse>> {
-    return this.send<PaginationResponse<OrganizationResponse>>('/api/v1/organizations', {
+  ): Promise<ListResponse<OrganizationResponse>> {
+    return this.send<ListResponse<OrganizationResponse>>('/api/v1/organizations', {
       method: 'GET',
       query: {
         page,
@@ -129,8 +129,8 @@ export class OrganizationService extends BaseService {
     id: string,
     page = 1,
     perPage = 20
-  ): Promise<PaginationResponse<any>> {
-    return this.send<PaginationResponse<any>>(`/api/v1/organizations/${id}/members`, {
+  ): Promise<ListResponse<any>> {
+    return this.send<ListResponse<any>>(`/api/v1/organizations/${id}/members`, {
       method: 'GET',
       query: {
         page,

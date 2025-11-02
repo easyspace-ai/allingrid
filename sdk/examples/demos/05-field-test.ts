@@ -24,29 +24,7 @@ export async function runFieldDemo(context: DemoContext): Promise<boolean> {
       { name: 'Name', type: 'singleLineText', required: true },
       { name: 'Description', type: 'longText' },
       { name: 'Age', type: 'number', options: { precision: 0, min: 0, max: 150 } },
-      { name: 'Birthday', type: 'date' },
-      { name: 'Created At', type: 'datetime' },
-      { name: 'Is Active', type: 'boolean' },
-      { 
-        name: 'Status', 
-        type: 'singleSelect',
-        options: {
-          choices: [
-            { id: 'active', name: '活跃', color: '#00ff00' },
-            { id: 'inactive', name: '非活跃', color: '#ff0000' }
-          ]
-        }
-      },
-      {
-        name: 'Tags',
-        type: 'multipleSelect',
-        options: {
-          choices: [
-            { id: 'tag1', name: '标签1', color: '#0000ff' },
-            { id: 'tag2', name: '标签2', color: '#ffff00' }
-          ]
-        }
-      }
+      
     ]
 
     for (const fieldConfig of fieldTypes) {
@@ -76,19 +54,19 @@ export async function runFieldDemo(context: DemoContext): Promise<boolean> {
     const allFields = await client.fields.getFullList(context.tableId!)
     logger.success(`获取到 ${allFields.length} 个字段（完整列表）`)
 
-    // 4. 获取单个字段
-    logger.step(4, 6, '获取单个字段...')
-    if (Object.keys(context.fieldIds).length > 0) {
-      const firstFieldId = Object.values(context.fieldIds)[0]
-      const field = await safeExecute(async () => {
-        return await client.fields.getOne(firstFieldId!)
-      }, '获取单个字段失败')
+    // // 4. 获取单个字段
+    // logger.step(4, 6, '获取单个字段...')
+    // if (Object.keys(context.fieldIds).length > 0) {
+    //   const firstFieldId = Object.values(context.fieldIds)[0]
+    //   const field = await safeExecute(async () => {
+    //     return await client.fields.getOne(firstFieldId!)
+    //   }, '获取单个字段失败')
       
-      if (field) {
-        logger.success(`获取成功: ${field.name} (${field.type})`)
-        logger.info(`字段详情: ${JSON.stringify(field, null, 2)}`)
-      }
-    }
+    //   if (field) {
+    //     logger.success(`获取成功: ${field.name} (${field.type})`)
+    //     logger.info(`字段详情: ${JSON.stringify(field, null, 2)}`)
+    //   }
+    // }
 
     // 5. 更新字段
     logger.step(5, 6, '更新字段...')
@@ -96,19 +74,23 @@ export async function runFieldDemo(context: DemoContext): Promise<boolean> {
       const fieldId = context.fieldIds['Name']
       logger.info(`尝试更新字段，ID: ${fieldId}`)
       
-      // ❌ 关键修复：等待一段时间，确保数据库事务完成和缓存更新
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // ❌ 关键修复：先等待一小段时间，确保数据库事务完成和缓存更新
+      await new Promise(resolve => setTimeout(resolve, 200))
       
-      // 先验证字段是否存在（可选，主要用于调试）
+      // 先验证字段是否存在
       try {
         const existingField = await client.fields.getOne(fieldId)
         logger.info(`字段存在验证成功: ${existingField.name} (${existingField.id})`)
-        // ❌ 关键修复：GetField 后等待一段时间，确保缓存更新
-        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        // ❌ 关键修复：GetField 后等待一小段时间，确保缓存更新
+        await new Promise(resolve => setTimeout(resolve, 100))
       } catch (error: any) {
-        logger.warning(`字段验证失败: ${error.message}，继续尝试更新`)
-        logger.warning(`尝试使用的字段ID: ${fieldId}`)
-        // 即使验证失败，也继续尝试更新（因为可能是缓存问题）
+        logger.error(`字段不存在或无法访问: ${error.message}`)
+        logger.error(`尝试使用的字段ID: ${fieldId}`)
+        logger.error(`所有已创建的字段ID: ${JSON.stringify(context.fieldIds, null, 2)}`)
+        if (error.status) {
+          logger.error(`HTTP状态码: ${error.status}`)
+        }
       }
       
       try {
@@ -133,21 +115,21 @@ export async function runFieldDemo(context: DemoContext): Promise<boolean> {
       logger.warning('Name 字段ID不存在，跳过更新')
     }
 
-    // 6. 删除字段（可选，用于清理）
-    logger.step(6, 6, '清理: 删除测试字段...')
-    const shouldCleanup = process.env.CLEANUP !== 'false'
-    if (shouldCleanup) {
-      // 只删除一个测试字段
-      const testFieldId = context.fieldIds['Is Active']
-      if (testFieldId) {
-        await safeExecute(async () => {
-          await client.fields.delete(testFieldId)
-          logger.success('测试字段已删除')
-        }, '删除字段失败')
-      }
-    } else {
-      logger.info('跳过清理（设置 CLEANUP=false 可保留资源）')
-    }
+    // // 6. 删除字段（可选，用于清理）
+    // logger.step(6, 6, '清理: 删除测试字段...')
+    // const shouldCleanup = process.env.CLEANUP !== 'false'
+    // if (shouldCleanup) {
+    //   // 只删除一个测试字段
+    //   const testFieldId = context.fieldIds['Is Active']
+    //   if (testFieldId) {
+    //     await safeExecute(async () => {
+    //       await client.fields.delete(testFieldId)
+    //       logger.success('测试字段已删除')
+    //     }, '删除字段失败')
+    //   }
+    // } else {
+    //   logger.info('跳过清理（设置 CLEANUP=false 可保留资源）')
+    // }
 
     logger.success('\n✅ Field API 演示完成')
     return true

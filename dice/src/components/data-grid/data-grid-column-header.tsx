@@ -31,6 +31,7 @@ import {
   Image as ImageIcon,
   Code as CodeIcon,
   Bot as BotIcon,
+  Trash2 as Trash2Icon,
 } from "lucide-react";
 import * as React from "react";
 import {
@@ -117,6 +118,7 @@ interface DataGridColumnHeaderProps<TData, TValue>
   header: Header<TData, TValue>;
   table: Table<TData>;
   dragListeners?: ReturnType<typeof useSortable>['listeners'];
+  onDeleteField?: (fieldId: string) => void | Promise<void>;
 }
 
 interface SortableColumnHeaderProps<TData, TValue>
@@ -128,6 +130,7 @@ function SortableColumnHeader<TData, TValue>({
   header,
   table,
   isAnyDragging = false,
+  onDeleteField,
   ...props
 }: SortableColumnHeaderProps<TData, TValue>) {
   const {
@@ -162,6 +165,7 @@ function SortableColumnHeader<TData, TValue>({
           table={table}
           isDragging={isDragging || isAnyDragging}
           dragListeners={listeners}
+          onDeleteField={onDeleteField}
           {...props}
         />
       </div>
@@ -176,6 +180,7 @@ export function DataGridColumnHeader<TData, TValue>({
   onPointerDown,
   isDragging,
   dragListeners,
+  onDeleteField,
   ...props
 }: DataGridColumnHeaderProps<TData, TValue>) {
   const column = header.column;
@@ -443,6 +448,22 @@ export function DataGridColumnHeader<TData, TValue>({
               </DropdownMenuCheckboxItem>
             </>
           )}
+          {onDeleteField && ( // 删除字段功能
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive [&_svg]:text-destructive"
+                onClick={() => {
+                  if (onDeleteField) {
+                    onDeleteField(column.id);
+                  }
+                }}
+              >
+                <Trash2Icon />
+                删除字段
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       {true && ( // 启用列调整大小功能
@@ -592,6 +613,7 @@ interface DraggableColumnHeadersProps<TData> {
   }) => void;
   onAddColumnClick?: () => void;
   addColumnTriggerRef?: React.RefObject<HTMLDivElement>;
+  onDeleteField?: (fieldId: string) => void | Promise<void>;
 }
 
 // 全局拖动状态，用于禁用列宽调整
@@ -606,6 +628,7 @@ export function DraggableColumnHeaders<TData>({
   onDragStateChange,
   onAddColumnClick,
   addColumnTriggerRef,
+  onDeleteField,
 }: DraggableColumnHeadersProps<TData>) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
@@ -774,6 +797,7 @@ export function DraggableColumnHeaders<TData>({
                   header={header}
                   table={table}
                   isAnyDragging={activeId !== null}
+                  onDeleteField={onDeleteField}
                 />
               )}
             </div>

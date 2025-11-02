@@ -1,5 +1,5 @@
 import { BaseService } from './BaseService'
-import { PaginationRequest, PaginationResponse } from '@/types/common'
+import { PaginationRequest, PaginationResponse, ListResponse } from '@/types/common'
 
 export interface Notification {
   id: string
@@ -84,8 +84,8 @@ export class NotificationService extends BaseService {
     page = 1,
     perPage = 20,
     filter: NotificationListFilter = {}
-  ): Promise<PaginationResponse<NotificationResponse>> {
-    return this.send<PaginationResponse<NotificationResponse>>('/api/v1/notifications', {
+  ): Promise<ListResponse<NotificationResponse>> {
+    return this.send<ListResponse<NotificationResponse>>('/api/v1/notifications', {
       method: 'GET',
       query: {
         page,

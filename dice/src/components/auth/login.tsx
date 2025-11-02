@@ -13,8 +13,8 @@ interface LoginProps {
 }
 
 export function Login({ onLoginSuccess }: LoginProps) {
-  const [email, setEmail] = React.useState("")
-  const [password, setPassword] = React.useState("")
+  const [email, setEmail] = React.useState("admin@126.com")
+  const [password, setPassword] = React.useState("Pmker123")
   const [isLoading, setIsLoading] = React.useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,32 +23,69 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
     try {
       const response = await luckdbClient.auth.login(email, password)
-      toast.success("登录成功")
       
-      if (onLoginSuccess) {
-        onLoginSuccess()
+      console.log("[Login] 登录响应:", {
+        hasResponse: !!response,
+        hasToken: !!(response?.token),
+        hasRecord: !!(response?.record),
+        tokenLength: response?.token?.length || 0,
+      });
+      
+      // 验证 token 是否已保存
+      const savedToken = luckdbClient.authStore.token;
+      console.log("[Login] 保存的 token:", {
+        hasToken: !!savedToken,
+        tokenLength: savedToken?.length || 0,
+        isValid: luckdbClient.authStore.isValid,
+      });
+      
+      // 验证响应是否有效
+      if (response && response.token && response.record) {
+        toast.success("登录成功")
+        
+        if (onLoginSuccess) {
+          onLoginSuccess()
+        }
+      } else {
+        toast.error("登录失败：响应格式错误")
+        console.error("Invalid login response:", response)
       }
-    } catch (error: any) {
-      toast.error(error.message || "登录失败，请检查邮箱和密码")
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "登录失败，请检查邮箱和密码"
+      toast.error(message)
+      console.error("Login error:", error)
+      if (error instanceof Error) {
+        console.error("Login error details:", {
+          message: error.message,
+          name: error.name,
+          stack: error.stack,
+        });
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  // 检查是否已登录
+  // 使用 useRef 保存 onLoginSuccess 回调，避免因回调变化导致重复调用
+  const onLoginSuccessRef = React.useRef(onLoginSuccess)
+  React.useEffect(() => {
+    onLoginSuccessRef.current = onLoginSuccess
+  }, [onLoginSuccess])
+
+  // 检查是否已登录（只在组件挂载时检查一次）
   React.useEffect(() => {
     const checkAuth = async () => {
       try {
         const user = await luckdbClient.auth.getCurrentUser()
-        if (user && onLoginSuccess) {
-          onLoginSuccess()
+        if (user && onLoginSuccessRef.current) {
+          onLoginSuccessRef.current()
         }
       } catch {
         // 未登录，显示登录界面
       }
     }
     checkAuth()
-  }, [onLoginSuccess])
+  }, []) // 只在组件挂载时执行一次
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

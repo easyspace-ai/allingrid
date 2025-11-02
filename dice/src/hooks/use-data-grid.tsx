@@ -1396,6 +1396,16 @@ function useDataGrid<TData>({
       enableSorting: true,
       enableHiding: true,
       enablePinning: true,
+      // 关键修复：显式配置 getRowId，确保每行都有唯一标识
+      // 使用 (row, index) => index 作为 fallback，避免依赖可能缺失的 id 字段
+      getRowId: (row, index) => {
+        // 如果数据有 id 字段，使用 id
+        if (row && typeof row === 'object' && 'id' in row && row.id) {
+          return String(row.id);
+        }
+        // 否则使用索引
+        return String(index);
+      },
       getCoreRowModel: getCoreRowModel(),
       getSortedRowModel: getSortedRowModel(),
       meta: {
@@ -1472,6 +1482,19 @@ function useDataGrid<TData>({
   if (!tableRef.current) {
     tableRef.current = table;
   }
+  
+  // 调试：检查 table 的 row model 是否正确计算
+  React.useEffect(() => {
+    const rows = table.getRowModel().rows;
+    console.log("[useDataGrid] table row model 状态:", {
+      dataLength: data.length,
+      dataIds: data.map((d: any) => d.id),
+      rowsLength: rows.length,
+      rowIds: rows.map(r => r.id),
+      match: rows.length === data.length,
+      tableOptionsData: tableOptions.data?.length,
+    });
+  }, [table, data, tableOptions.data]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we need to memoize the column size vars
   const columnSizeVars = React.useMemo(() => {
@@ -1486,8 +1509,27 @@ function useDataGrid<TData>({
     return colSizes;
   }, [table.getState().columnSizingInfo, table.getState().columnSizing, table.getState().columnOrder, columns.length]);
 
+  // 关键修复：直接使用 data.length 作为 rowVirtualizer 的 count
+  // 问题：table.getRowModel().rows.length 在初始化时可能还没有更新（React Table 的计算时序问题）
+  // 当拖动列时，columnOrder 改变触发 tableOptions 重新计算，table 重新创建，getRowModel() 才重新计算
+  // 解决方案：直接使用源数据 data.length，确保 count 始终与数据同步
+  const rowCount = data.length;
+  
+  // 调试：检查 rowCount 和 table row model
+  React.useEffect(() => {
+    const tableRowCount = table.getRowModel().rows.length;
+    console.log("[useDataGrid] rowCount 状态:", {
+      dataLength: data.length,
+      dataIds: data.map((d: any) => d.id),
+      rowCount,
+      tableRowCount,
+      tableRowIds: table.getRowModel().rows.map(r => r.id),
+      match: rowCount === tableRowCount && rowCount === data.length,
+    });
+  }, [data, rowCount, table]);
+
   const rowVirtualizer = useVirtualizer({
-    count: table.getRowModel().rows.length,
+    count: rowCount,
     getScrollElement: () => dataGridRef.current,
     estimateSize: () => rowHeightValue,
     overscan,
@@ -1521,6 +1563,30 @@ function useDataGrid<TData>({
       });
     },
   });
+  
+  // 关键修复：当 rowCount 或 data 变化时，强制重新测量虚拟化器
+  // 这确保虚拟化器能正确响应数据变化
+  React.useEffect(() => {
+    console.log("[useDataGrid] rowCount 变化，强制重新测量 virtualizer:", rowCount);
+    if (dataGridRef.current) {
+      // 确保容器已挂载后再测量
+      rowVirtualizer.measure();
+      // 使用 requestAnimationFrame 确保 DOM 已更新
+      requestAnimationFrame(() => {
+        rowVirtualizer.measure();
+      });
+    }
+  }, [rowCount, data.length, rowVirtualizer]);
+  
+  // 额外的修复：确保虚拟化器在容器挂载后正确初始化
+  // 使用 useLayoutEffect 确保在 DOM 更新后立即执行
+  useIsomorphicLayoutEffect(() => {
+    if (dataGridRef.current && rowCount > 0) {
+      console.log("[useDataGrid] 容器已挂载，强制初始化 virtualizer:", rowCount);
+      rowVirtualizer.measure();
+    }
+  }, [rowCount, rowVirtualizer]);
+  
 
   if (!rowVirtualizerRef.current) {
     rowVirtualizerRef.current = rowVirtualizer;

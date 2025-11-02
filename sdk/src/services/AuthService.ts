@@ -20,19 +20,67 @@ export class AuthService extends BaseService {
    */
   async login(email: string, password: string): Promise<AuthResponse> {
     const request: LoginRequest = { email, password }
-    const serverResponse = await this.send<{ user: AuthRecord, accessToken: string, refreshToken: string }>('/api/v1/auth/login', {
-      method: 'POST',
-      body: request
-    })
+    
+    try {
+      console.log('[AuthService] Starting login request...')
+      const serverResponse = await this.send<{ user: AuthRecord, accessToken: string, refreshToken: string } | any>('/api/v1/auth/login', {
+        method: 'POST',
+        body: request
+      })
 
-    // parseResponse 已经解包了 data，所以直接使用 serverResponse
-    const response: AuthResponse = {
-      token: serverResponse.accessToken,
-      record: serverResponse.user
+      console.log('[AuthService] Received response:', serverResponse)
+      console.log('[AuthService] Response type:', typeof serverResponse)
+      console.log('[AuthService] Response keys:', serverResponse ? Object.keys(serverResponse) : 'null/undefined')
+
+      // 防御性检查：确保响应存在
+      if (!serverResponse) {
+        console.error('[AuthService] Login response is undefined')
+        throw new Error('登录失败：服务器响应为空')
+      }
+
+      // 额外检查：确保 serverResponse 是对象
+      if (typeof serverResponse !== 'object') {
+        console.error('[AuthService] Login response is not an object:', serverResponse)
+        throw new Error(`登录失败：响应格式无效 - 期望对象，收到 ${typeof serverResponse}`)
+      }
+
+      // 检查响应格式：可能是 { accessToken, user } 或 { data: { accessToken, user } }
+      let accessToken: string | undefined
+      let user: AuthRecord | undefined
+
+      if (serverResponse.accessToken) {
+        // 直接格式：{ accessToken, user, refreshToken }
+        accessToken = serverResponse.accessToken
+        user = serverResponse.user
+      } else if (serverResponse.data && serverResponse.data.accessToken) {
+        // 嵌套格式：{ data: { accessToken, user, refreshToken } }
+        accessToken = serverResponse.data.accessToken
+        user = serverResponse.data.user
+      } else {
+        // 未知格式，尝试直接使用
+        console.error('Unexpected login response format:', serverResponse)
+        throw new Error(`登录失败：响应格式错误 - ${JSON.stringify(serverResponse).substring(0, 100)}`)
+      }
+
+      if (!accessToken) {
+        throw new Error('登录失败：未收到访问令牌')
+      }
+
+      if (!user) {
+        throw new Error('登录失败：未收到用户信息')
+      }
+
+      const response: AuthResponse = {
+        token: accessToken,
+        record: user
+      }
+
+      this.authResponse(response)
+      return response
+    } catch (error) {
+      console.error('Login error details:', error)
+      throw error
     }
-
-    this.authResponse(response)
-    return response
   }
 
   /**
@@ -40,19 +88,47 @@ export class AuthService extends BaseService {
    */
   async register(email: string, password: string, passwordConfirm: string, name?: string): Promise<AuthResponse> {
     const request: RegisterRequest = { email, password, passwordConfirm, ...(name && { name }) }
-    const serverResponse = await this.send<{ user: AuthRecord, accessToken: string, refreshToken: string }>('/api/v1/auth/register', {
-      method: 'POST',
-      body: request
-    })
+    
+    try {
+      const serverResponse = await this.send<{ user: AuthRecord, accessToken: string, refreshToken: string } | any>('/api/v1/auth/register', {
+        method: 'POST',
+        body: request
+      })
 
-    // parseResponse 已经解包了 data，所以直接使用 serverResponse
-    const response: AuthResponse = {
-      token: serverResponse.accessToken,
-      record: serverResponse.user
+      // 防御性检查：确保响应存在
+      if (!serverResponse) {
+        throw new Error('注册失败：服务器响应为空')
+      }
+
+      // 检查响应格式：可能是 { accessToken, user } 或 { data: { accessToken, user } }
+      let accessToken: string | undefined
+      let user: AuthRecord | undefined
+
+      if (serverResponse.accessToken) {
+        accessToken = serverResponse.accessToken
+        user = serverResponse.user
+      } else if (serverResponse.data && serverResponse.data.accessToken) {
+        accessToken = serverResponse.data.accessToken
+        user = serverResponse.data.user
+      } else {
+        throw new Error(`注册失败：响应格式错误 - ${JSON.stringify(serverResponse).substring(0, 100)}`)
+      }
+
+      if (!accessToken || !user) {
+        throw new Error('注册失败：未收到访问令牌或用户信息')
+      }
+
+      const response: AuthResponse = {
+        token: accessToken,
+        record: user
+      }
+
+      this.authResponse(response)
+      return response
+    } catch (error) {
+      console.error('Register error details:', error)
+      throw error
     }
-
-    this.authResponse(response)
-    return response
   }
 
   /**

@@ -21,7 +21,7 @@ database:
   max_idle_conns: 25 # ✅ 优化：10 -> 25
   max_open_conns: 200 # ✅ 优化：100 -> 200
   conn_max_lifetime: '1h'
-  log_level: 'warn' # ✅ 优化：减少启动时的SQL查询日志，只显示警告和错误
+  log_level: 'info' # 开启所有SQL日志，包括查询表的字段列表
 
 redis:
   host: 'localhost'

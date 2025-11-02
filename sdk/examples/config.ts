@@ -24,8 +24,8 @@ export interface DemoConfig {
 export function loadConfig(): DemoConfig {
   const serverURL = process.env.SERVER_URL || 'http://localhost:8080'
   const websocketURL = process.env.WEBSOCKET_URL || serverURL.replace(/^http/, 'ws')
-  const testEmail = process.env.TEST_EMAIL || 'demo@example.com'
-  const testPassword = process.env.TEST_PASSWORD || 'Test123456!'
+  const testEmail = process.env.TEST_EMAIL || 'admin@126.com'
+  const testPassword = process.env.TEST_PASSWORD || 'Pmker123'
   const testName = process.env.TEST_NAME || 'Demo User'
   const debug = process.env.DEBUG === 'true'
 
